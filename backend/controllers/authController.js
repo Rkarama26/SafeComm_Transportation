@@ -4,7 +4,6 @@ const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 const passport = require("passport");
 const { Strategy: GoogleStrategy } = require("passport-google-oauth20");
-const { sendEmail } = require("../utils/emailService");
 const BlackListTokenModel = require("../models/blackListToken.model");
 const { publishEmailJob } = require("../queues/emailPublisher");
 const UserModel = require("../models/user");
@@ -29,7 +28,7 @@ const signup = async (req, res) => {
       if (err) return res.status(500).json({ message: "Something went wrong" });
 
       await UserModel.create({
-        firstname,
+        firstname, 
         lastname,
         email,
         password: hash,

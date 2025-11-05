@@ -4,7 +4,8 @@ const { body, validationResult } = require("express-validator");
 const validateRequest = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    const error = errors.array()[0].msg;
+    return res.status(400).json({ message: error });
   }
   next();
 };
@@ -14,7 +15,7 @@ const signupValidator = [
   body("firstname")
     .trim()
     .notEmpty()
-    .withMessage("First name is required")
+    .withMessage("First name is missing")
     .isLength({ min: 2 })
     .withMessage("First name must be at least 2 characters"),
 

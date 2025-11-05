@@ -1,7 +1,6 @@
-import { getChannel } from "../config/rabbitMq.js";
+const { getChannel } = require("../config/rabbitMq");
 
-
-export const publishEmailJob = async (emailData) => {
+const publishEmailJob = async (emailData) => {
   try {
     const channel = getChannel();
     if (!channel) throw new Error("RabbitMQ channel not initialized");
@@ -13,8 +12,10 @@ export const publishEmailJob = async (emailData) => {
       persistent: true,
     });
 
-    console.log(`Email job queued for ${emailData.to}`);
+    console.log(` Email job queued for ${emailData.to}`);
   } catch (error) {
-    console.error("Error publishing email job:", error);
+    console.error(" Error publishing email job:", error);
   }
 };
+
+module.exports = { publishEmailJob };

@@ -1,5 +1,5 @@
-import nodemailer from "nodemailer";
-import dotenv from "dotenv";
+const nodemailer = require("nodemailer");
+const dotenv = require("dotenv");
 
 dotenv.config();
 
@@ -22,7 +22,7 @@ const transporter = nodemailer.createTransport({
  * @param {string} [options.text] - Plain text body
  * @param {string} [options.html] - HTML body
  */
-export const sendEmail = async ({ to, subject, text, html }) => {
+const sendEmail = async ({ to, subject, text, html }) => {
   try {
     const info = await transporter.sendMail({
       from: `"Rohit Vishwakarma" <${process.env.GOOGLE_APP_EMAIL}>`,
@@ -39,3 +39,5 @@ export const sendEmail = async ({ to, subject, text, html }) => {
     throw new Error("Email not sent");
   }
 };
+
+module.exports = { sendEmail };

@@ -1,17 +1,17 @@
 const express = require("express");
 const morgan = require("morgan");
-const authRouter = require("./routes/authRoutes");
 
 const app = express();
 
 //  middlewares
 // const cors = require("cors");
- const helmet = require("helmet");
- app.use(helmet());                // Security headers
+const helmet = require("helmet");
+const authRouter = require("./routes/authRoutes");
+app.use(helmet()); // Security headers
 // app.use(cors());                  // Enable CORS
 // app.use(express.urlencoded({ extended: true }));
-app.use(morgan("dev"));             // HTTP request logger
-app.use(express.json());            // Parse JSON request body
+app.use(morgan("dev")); // HTTP request logger
+app.use(express.json()); // Parse JSON request body
 
 // API routes
 app.use("/api/auth", authRouter);
