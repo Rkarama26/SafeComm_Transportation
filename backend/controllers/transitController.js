@@ -37,7 +37,7 @@ const getNearbyStops = async (req, res) => {
     const result = await transitService.getNearbyStops(lat, lon, radius);
     res.json(result);
   } catch (err) {
-    // Check if it's a validation error
+    //  ifvalidation error
     if (
       err.message.includes("required") ||
       err.message.includes("Invalid") ||

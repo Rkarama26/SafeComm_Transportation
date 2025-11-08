@@ -11,18 +11,27 @@ const MAPPLS_REST_KEY = process.env.MAPPLES_API_KEY;
 const BASE_URL = process.env.MAPPLES_BASE_URL;
 const GEO_URL = "https://atlas.mappls.com/api/places/geocode";
 
-//GET /api/transit/routes?feedId=mdb-1210
+//GET /api/transit/routes?feedId=mdb-1210&page=1&limit=10
 //Get all routes
-const getAllRoutes = async (req, res) => {
+const getAllRoutes = async (feedId, page = 1, limit = 10) => {
   try {
-    const { feedId } = req.query;
     const filter = feedId ? { feedId } : {};
-    const routes = await RoutesModel.find(filter).select(
-      "route_id route_short_name route_long_name route_type"
-    );
-    res.json({ success: true, count: routes.length, data: routes });
+    const skip = (page - 1) * limit;
+    const routes = await RoutesModel.find(filter)
+      .select("route_id route_short_name route_long_name route_type")
+      .skip(skip)
+      .limit(limit);
+    const total = await RoutesModel.countDocuments(filter);
+    return {
+      success: true,
+      count: routes.length,
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      data: routes,
+    };
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    throw new Error(err.message);
   }
 };
 
@@ -30,11 +39,10 @@ const getAllRoutes = async (req, res) => {
 /*Get route details + shape
 Goal: Get detailed route info, with geometry (shape).
 */
-const getRouteDetails = async (req, res) => {
+const getRouteDetails = async (route_id) => {
   try {
-    const { route_id } = req.params;
     const route = await RoutesModel.findOne({ route_id });
-    if (!route) return res.status(404).json({ message: "Route not found" });
+    if (!route) throw new Error("Route not found");
 
     // get example trip & shape
     const trip = await TripModel.findOne({ route_id })
@@ -44,9 +52,9 @@ const getRouteDetails = async (req, res) => {
       ? await ShapeModel.findOne({ shape_id: trip.shape_id }).lean()
       : null;
 
-    res.json({ success: true, data: { route, shape } });
+    return { success: true, data: { route, shape } };
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    throw new Error(err.message);
   }
 };
 
@@ -55,24 +63,54 @@ const getRouteDetails = async (req, res) => {
 Get stops nearby a location
 Goal: Find all stops within a radius from user location.
 */
-const getNearbyStops = async (req, res) => {
+const getNearbyStops = async (lat, lon, radius = 500) => {
   try {
-    const { lat, lon, radius = 500 } = req.query;
+    // Validate inputs
+    if (!lat || !lon) {
+      throw new Error("Latitude and longitude are required");
+    }
+    const latNum = parseFloat(lat);
+    const lonNum = parseFloat(lon);
+    const radiusNum = parseFloat(radius);
+
+    if (isNaN(latNum) || isNaN(lonNum)) {
+      throw new Error("Invalid latitude or longitude values");
+    }
+
+    if (latNum < -90 || latNum > 90) {
+      throw new Error("Latitude must be between -90 and 90");
+    }
+
+    if (lonNum < -180 || lonNum > 180) {
+      throw new Error("Longitude must be between -180 and 180");
+    }
+
+    if (isNaN(radiusNum) || radiusNum <= 0 || radiusNum > 50000) {
+      throw new Error(
+        "Radius must be a positive number and less than 50,000 meters"
+      );
+    }
+
     const nearby = await StopModel.find({
       location: {
         $near: {
           $geometry: {
             type: "Point",
-            coordinates: [parseFloat(lon), parseFloat(lat)],
+            coordinates: [lonNum, latNum],
           },
-          $maxDistance: parseFloat(radius),
+          $maxDistance: radiusNum,
         },
       },
     }).limit(50);
 
-    res.json({ success: true, count: nearby.length, data: nearby });
+    return { success: true, count: nearby.length, data: nearby };
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    if (err.message.includes("Geospatial")) {
+      throw new Error(
+        "Geospatial search is not available. Please check database indexes."
+      );
+    }
+    throw new Error(err.message);
   }
 };
 
@@ -81,11 +119,8 @@ const getNearbyStops = async (req, res) => {
 Get stop schedule
 Goal: Get upcoming arrivals/departures for a specific stop on a given date.
 */
-const getStopSchedule = async (req, res) => {
+const getStopSchedule = async (stop_id, date) => {
   try {
-    const { stop_id } = req.params;
-    const { date } = req.query;
-
     const stopTimes = await StopTimeModel.find({ stop_id })
       .sort({ arrival_time: 1 })
       .limit(50)
@@ -96,9 +131,9 @@ const getStopSchedule = async (req, res) => {
       "route_id trip_headsign"
     );
 
-    res.json({ success: true, stop_id, date, data: { stopTimes, trips } });
+    return { success: true, stop_id, date, data: { stopTimes, trips } };
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    throw new Error(err.message);
   }
 };
 
@@ -107,15 +142,14 @@ Get trips for a route
 Goal: All trips (and optionally stop sequences) for a specific route.
 GET /api/transit/trips?route_id=123
 */
-const getTripsForRoute = async (req, res) => {
+const getTripsForRoute = async (route_id) => {
   try {
-    const { route_id } = req.query;
     const trips = await TripModel.find({ route_id }).select(
       "trip_id trip_headsign direction_id service_id shape_id"
     );
-    res.json({ success: true, count: trips.length, data: trips });
+    return { success: true, count: trips.length, data: trips };
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    throw new Error(err.message);
   }
 };
 
