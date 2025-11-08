@@ -1,0 +1,11 @@
+stop_id,stop_code,platform_code,stop_name,stop_desc,stop_lat,stop_lon,zone_id,stop_url,location_type,parent_station,stop_timezone,position,direction,wheelchair_boarding
+2562316,,,FlyAway-Van Nuys Terminal,,34.2096749417238,-118.482855619855,,,0,,America/Los_Angeles,,,0
+771262,,,Bakersfield,,35.3533707819563,-119.062001238098,628,,0,,America/Los_Angeles,,,0
+771263,,,LAX Terminal #3,,33.944796,-118.406752,628,,0,,America/Los_Angeles,,,0
+771487,,,LAX Terminal #1,,33.945284,-118.401364,628,,0,,America/Los_Angeles,,,0
+771488,,,LAX Terminal #2,,33.945048,-118.404098,628,,0,,America/Los_Angeles,,,0
+771489,,,LAX Terminal #4,,33.942609,-118.406551,628,,0,,America/Los_Angeles,,,0
+771490,,,LAX Terminal #5,,33.942882,-118.403869,628,,0,,America/Los_Angeles,,,0
+771491,,,LAX Terminal #6,,33.943137,-118.401573,628,,0,,America/Los_Angeles,,,0
+771492,,,LAX Terminal #7,,33.943439,-118.398682,628,,0,,America/Los_Angeles,,,0
+771495,,,Tom Bradley Int’l Terminal,,33.943929,-118.408159,628,,0,,America/Los_Angeles,,,0

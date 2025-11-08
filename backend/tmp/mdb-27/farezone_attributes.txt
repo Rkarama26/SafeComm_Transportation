@@ -1,0 +1,2 @@
+zone_id,zone_name
+628,Bakersfield/LAX

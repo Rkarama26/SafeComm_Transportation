@@ -7,7 +7,7 @@ const FareRuleSchema = new mongoose.Schema({
   origin_id: String,
   destination_id: String,
   contains_id: String,
-});
+}); 
 
 const FareRuleModel = mongoose.model("FareRule", FareRuleSchema);   
 

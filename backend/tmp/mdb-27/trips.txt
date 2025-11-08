@@ -1,0 +1,8 @@
+route_id,service_id,trip_id,trip_short_name,trip_headsign,direction_id,block_id,shape_id,bikes_allowed,wheelchair_accessible,trip_type,drt_max_travel_time,drt_avg_travel_time,drt_advance_book_min,drt_pickup_message,drt_drop_off_message,continuous_pickup_message,continuous_drop_off_message
+1425,c_18074_b_22728_d_127,t_890529_b_22728_tn_0,,LAX,0,,p_3592,,,,,,,,,,
+1425,c_18074_b_22728_d_127,t_890526_b_22728_tn_0,,LAX,0,,p_3592,,,,,,,,,,
+1425,c_18074_b_22728_d_127,t_890527_b_22728_tn_0,,Bakersfield,1,,p_3649,,,,,,,,,,
+1425,c_18074_b_22728_d_31,t_890519_b_22728_tn_0,,LAX,0,,p_3592,,,,,,,,,,
+1425,c_18074_b_22728_d_31,t_890523_b_22728_tn_0,,LAX,0,,p_3592,,,,,,,,,,
+1425,c_18074_b_22728_d_31,t_890528_b_22728_tn_0,,Bakersfield,1,,p_3649,,,,,,,,,,
+1425,c_18074_b_22728_d_31,t_890521_b_22728_tn_0,,Bakersfield,1,,p_3649,,,,,,,,,,

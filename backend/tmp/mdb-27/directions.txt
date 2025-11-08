@@ -1,0 +1,3 @@
+route_id,direction_id,direction
+1425,1,Inbound
+1425,0,Outbound

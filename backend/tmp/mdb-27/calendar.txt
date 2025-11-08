@@ -1,0 +1,3 @@
+service_id,service_name,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date
+c_18074_b_22728_d_31,Year Round Starting 11/1/19 (Weekday),1,1,1,1,1,0,0,20191101,20200701
+c_18074_b_22728_d_127,Year Round Starting 11/1/19 (All days of week),1,1,1,1,1,1,1,20191101,20200701
