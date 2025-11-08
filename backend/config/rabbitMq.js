@@ -9,6 +9,7 @@ const connectRabbitMQ = async () => {
     console.log(" Connected to RabbitMQ");
   } catch (error) {
     console.error(" RabbitMQ connection failed:", error.message);
+    setTimeout(connectRabbitMQ, 5000); // retry after 5s
   }
 };
 

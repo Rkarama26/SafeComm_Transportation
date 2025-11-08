@@ -7,6 +7,8 @@ const app = express();
 // const cors = require("cors");
 const helmet = require("helmet");
 const authRouter = require("./routes/authRoutes");
+const transitRouter = require("./routes/transitRoute");
+const tokenRouter = require("./routes/tokenRoutes");
 app.use(helmet()); // Security headers
 // app.use(cors());                  // Enable CORS
 // app.use(express.urlencoded({ extended: true }));
@@ -15,6 +17,10 @@ app.use(express.json()); // Parse JSON request body
 
 // API routes
 app.use("/api/auth", authRouter);
+app.use("/api/transit", transitRouter);
+app.use("/api", tokenRouter)
+
+require("./cronJobs/tokenCron");
 
 // Test route
 app.get("/test", (req, res) => {

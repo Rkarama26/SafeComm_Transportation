@@ -18,7 +18,7 @@ const {
   validateRequest,
 } = require("../middleware/authValidator");
 
-const authRouter = express.Router();
+const authRouter = express.Router(); 
 
 // SIGNUP
 authRouter.post("/signup", signupValidator, validateRequest, signup);

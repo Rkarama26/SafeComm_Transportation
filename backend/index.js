@@ -7,7 +7,7 @@ const app = require("./app");
 
 const PORT = process.env.PORT || 5000;
 
-// Start everything in order
+// Start in order
 (async () => {
   try {
     connectDB();

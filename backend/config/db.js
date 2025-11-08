@@ -12,7 +12,7 @@ const connectDB = async () => {
     const dbEnv = process.env.NODE_ENV || "development";
     const dbName = conn.connection.name;
 
-    console.log(` MongoDB Connected: ${dbName}`);
+    console.log(` MongoDB Connected to Database: ${dbName}`);
   } catch (error) {
     console.error(` MongoDB Connection Error: ${error.message}`);
     process.exit(1);
