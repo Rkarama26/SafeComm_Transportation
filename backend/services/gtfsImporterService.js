@@ -4,20 +4,20 @@ const fs = require("fs");
 const path = require("path");
 const { parse } = require("csv-parse");
 const mongoose = require("mongoose");
-const RoutesModel = require("../static_gtfs_models/Routes.js");
-const StopModel = require("../static_gtfs_models/Stop.js");
-const TripModel = require("../static_gtfs_models/Trip.js");
-const StopTimeModel = require("../static_gtfs_models/StopTime.js");
-const ShapeModel = require("../static_gtfs_models/Shape.js.js");
-const CalendarModel = require("../static_gtfs_models/Calendar.js");
-const CalendarDateModel = require("../static_gtfs_models/CalendarDate.js");
-const FareAttributeModel = require("../static_gtfs_models/FareAttribute.js");
-const FareRuleModel = require("../static_gtfs_models/FareRule.js");
-const AgencyModel = require("../static_gtfs_models/Agency.js");
-const FeedInfoModel = require("../static_gtfs_models/FeedInfo.js");
+const RoutesModel = require("../gtfs_models/Routes.js");
+const StopModel = require("../gtfs_models/Stop.js");
+const TripModel = require("../gtfs_models/Trip.js");
+const StopTimeModel = require("../gtfs_models/StopTime.js");
+const ShapeModel = require("../gtfs_models/Shape.js.js");
+const CalendarModel = require("../gtfs_models/Calendar.js");
+const CalendarDateModel = require("../gtfs_models/CalendarDate.js");
+const FareAttributeModel = require("../gtfs_models/FareAttribute.js");
+const FareRuleModel = require("../gtfs_models/FareRule.js");
+const AgencyModel = require("../gtfs_models/Agency.js");
+const FeedInfoModel = require("../gtfs_models/FeedInfo.js");
 const { getAccessToken } = require("./tokenService.js");
-const RealtimeRouteModel = require("../static_gtfs_models/RealtimeRoute.js");
-const DirectionModel = require("../static_gtfs_models/DirectionModel.js");
+const RealtimeRouteModel = require("../gtfs_models/RealtimeRoute.js");
+const DirectionModel = require("../gtfs_models/DirectionModel.js");
 const {
   discoverGTFSFeeds,
   getGTFSFeedById,

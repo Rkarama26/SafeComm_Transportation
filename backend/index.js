@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 5000;
 
     //   Express app
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {
     console.error(" Startup failed:", error);
@@ -47,17 +47,17 @@ const gracefulShutdown = async (signal) => {
       // Close database connection
       await mongoose.connection.close();
 
-      console.log("✅ Graceful shutdown completed");
+      console.log("Graceful shutdown completed");
       process.exit(0);
     });
 
     // Force exit after 30 seconds
     setTimeout(() => {
-      console.error("❌ Forced shutdown after timeout");
+      console.error("Forced shutdown after timeout:", error);
       process.exit(1);
     }, 30000);
   } catch (error) {
-    console.error("❌ Error during shutdown:", error);
+    console.error("Error during shutdown:", error);
     process.exit(1);
   }
 };

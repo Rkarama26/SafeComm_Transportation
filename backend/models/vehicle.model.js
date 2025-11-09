@@ -10,7 +10,7 @@ const vehicleSchema = new mongoose.Schema(
     },
     route: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Route", // 🔗 Relation to Route
+      ref: "Route", // Relation to Route
       required: true,
     },
     lat: {

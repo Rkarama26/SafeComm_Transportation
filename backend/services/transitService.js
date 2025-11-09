@@ -1,11 +1,11 @@
 const axios = require("axios");
 const RouteModel = require("../models/route.model");
 const { getCoordinates } = require("../utils/geoCoding");
-const RoutesModel = require("../static_gtfs_models/Routes");
-const TripModel = require("../static_gtfs_models/Trip");
-const ShapeModel = require("../static_gtfs_models/Shape.js");
-const StopModel = require("../static_gtfs_models/Stop.js");
-const StopTimeModel = require("../static_gtfs_models/StopTime.js");
+const RoutesModel = require("../gtfs_models/Routes.js");
+const TripModel = require("../gtfs_models/Trip.js");
+const ShapeModel = require("../gtfs_models/Shape.js");
+const StopModel = require("../gtfs_models/Stop.js");
+const StopTimeModel = require("../gtfs_models/StopTime.js");
 
 const MAPPLS_REST_KEY = process.env.MAPPLES_API_KEY;
 const BASE_URL = process.env.MAPPLES_BASE_URL;

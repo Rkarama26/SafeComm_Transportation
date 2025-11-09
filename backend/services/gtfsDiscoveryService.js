@@ -7,7 +7,7 @@ const { getAccessToken } = require("./tokenService");
 /**
  * Discover GTFS feeds for a specific location/area
  *  locationParams - Location parameters for GTFS feed discovery
- *  locationParams.provider - Provider name (optional)
+ *  locationParams.provider - Provider name (optional) -- Metropolitan Transit Authority (MTA)
  *  locationParams.producer_url - Producer URL (optional)
  *  locationParams.country_code - Country code (e.g., "US")
  *  locationParams.subdivision_name - State/Province name
@@ -106,8 +106,8 @@ async function discoverGTFSFeeds(locationParams = {}) {
  */
 async function getGTFSFeedUrl(feedId) {
   try {
-    const feeds = await discoverGTFSFeeds({ limit: 1 });
-    const feed = feeds.find((f) => f.id === feedId);
+    // Get feed directly by ID
+    const feed = await getGTFSFeedById(feedId);
 
     if (!feed) {
       throw new Error(`GTFS feed with ID '${feedId}' not found`);

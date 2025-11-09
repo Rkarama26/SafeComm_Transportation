@@ -9,6 +9,7 @@ const helmet = require("helmet");
 const authRouter = require("./routes/authRoutes");
 const transitRouter = require("./routes/transitRoute");
 const gtfsRouter = require("./routes/gtfsRoutes");
+const gtfsRealtimeRouter = require("./routes/gtfsRealtimeRoutes");
 const tokenRouter = require("./routes/tokenRoutes");
 app.use(helmet()); // Security headers
 // app.use(cors());                  // Enable CORS
@@ -20,6 +21,7 @@ app.use(express.json()); // Parse JSON request body
 app.use("/api/auth", authRouter);
 app.use("/api/transit", transitRouter);
 app.use("/api/gtfs", gtfsRouter);
+app.use("/api/gtfs-rt", gtfsRealtimeRouter);
 app.use("/api", tokenRouter);
 
 // Cron jobs

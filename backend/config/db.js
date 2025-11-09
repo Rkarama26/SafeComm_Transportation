@@ -28,7 +28,7 @@ const createGeospatialIndexes = async () => {
     console.log(" Ensuring geospatial indexes...");
 
     // Import models after connection to ensure indexes are created
-    const StopModel = require("../static_gtfs_models/Stop.js");
+    const StopModel = require("../gtfs_models/Stop.js");
 
     // The index is now defined in the schema, but we can ensure it's built
     await StopModel.ensureIndexes();

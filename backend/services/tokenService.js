@@ -4,8 +4,7 @@ const path = require("path");
 const MobilityTokenModel = require("../models/mobilityToken.model");
 
 const REFRESH_TOKEN = process.env.MOBILITY_REFRESH_TOKEN;
-const MOBILITY_BASE_URL =
-  process.env.MOBILITY_BASE_URL;
+const MOBILITY_BASE_URL = process.env.MOBILITY_BASE_URL;
 
 let accessToken = null;
 
@@ -30,7 +29,7 @@ async function generateAccessToken() {
 
     cachedToken = token;
     console.log(
-      "✅ New Mobility access token generated at:",
+      "New Mobility access token generated at:",
       new Date().toLocaleString()
     );
     return token;
