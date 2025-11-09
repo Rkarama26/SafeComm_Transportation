@@ -18,7 +18,7 @@ transitRouter.get("/stops/nearby", getNearbyStops);
 transitRouter.get("/stops/:stop_id/schedule", getStopSchedule);
 transitRouter.get("/trips", getTripsForRoute);
 
-//mapples routes
+//mapples routes - fetche from mapmyindia, no longer needed in this configuration
 transitRouter.get("/routes/find", RateLimiter(10, 1), getRouteFromMappls);
 
 
