@@ -15,7 +15,10 @@ npm-debug.log*
 .env
 tmp/
 
+
 # Documentation Files (except README.md)
+backend/ARCHITECTURE.md
 *.md
 !README.md
+docs/
 

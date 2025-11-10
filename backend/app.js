@@ -22,6 +22,10 @@ app.use(express.json()); // Parse JSON request body
 // Serve static files from public directory
 app.use(express.static("public"));
 
+// Swagger documentation
+const setupSwagger = require("./config/swagger");
+setupSwagger(app);
+
 // API routes
 app.use("/api/auth", authRouter);
 app.use("/api/transit", transitRouter);
