@@ -4,9 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --runInBand",
-    "dev": "nodemon index.js"
-  },
+  "test": "jest --runInBand",
+  "dev": "nodemon index.js",
+  "start": "node index.js"
+},
+
   "keywords": [],
   "author": "",
   "license": "ISC",
