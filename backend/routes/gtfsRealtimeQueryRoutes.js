@@ -10,6 +10,7 @@ const {
   getSchedulerStatus,
   getAllVehicles,
 } = require("../controllers/gtfsRealtimeQueryController");
+const authMiddleware = require("../middleware/auth_midleware");
 
 /**
  * @swagger
@@ -46,7 +47,7 @@ const {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/vehicles", getAllVehicles);
+router.get("/vehicles", authMiddleware(["user", "admin"]), getAllVehicles);
 
 /**
  * @swagger
@@ -110,7 +111,11 @@ router.get("/vehicles", getAllVehicles);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/vehicles/nearby", getNearbyVehicles);
+router.get(
+  "/vehicles/nearby",
+  authMiddleware(["user", "admin"]),
+  getNearbyVehicles
+);
 
 /**
  * @swagger
@@ -149,7 +154,11 @@ router.get("/vehicles/nearby", getNearbyVehicles);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/vehicles/:vehicleId", getVehicleDetails);
+router.get(
+  "/vehicles/:vehicleId",
+  authMiddleware(["user", "admin"]),
+  getVehicleDetails
+);
 
 /**
  * @swagger
@@ -193,7 +202,11 @@ router.get("/vehicles/:vehicleId", getVehicleDetails);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/routes/:routeId/vehicles", getRouteVehicles);
+router.get(
+  "/routes/:routeId/vehicles",
+  authMiddleware(["user", "admin"]),
+  getRouteVehicles
+);
 
 /**
  * @swagger
@@ -256,7 +269,11 @@ router.get("/routes/:routeId/vehicles", getRouteVehicles);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/trips/:tripId/updates", getTripUpdates);
+router.get(
+  "/trips/:tripId/updates",
+  authMiddleware(["user", "admin"]),
+  getTripUpdates
+);
 
 /**
  * @swagger
@@ -311,7 +328,7 @@ router.get("/trips/:tripId/updates", getTripUpdates);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/trips/:tripId/eta", getTripETA);
+router.get("/trips/:tripId/eta", authMiddleware(["user", "admin"]), getTripETA);
 
 /**
  * @swagger
@@ -386,7 +403,7 @@ router.get("/trips/:tripId/eta", getTripETA);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/alerts", getActiveAlerts);
+router.get("/alerts", authMiddleware(["user", "admin"]), getActiveAlerts);
 
 /**
  * @swagger
@@ -444,6 +461,10 @@ router.get("/alerts", getActiveAlerts);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/scheduler/status", getSchedulerStatus);
+router.get(
+  "/scheduler/status",
+  authMiddleware(["user", "admin"]),
+  getSchedulerStatus
+);
 
 module.exports = router;

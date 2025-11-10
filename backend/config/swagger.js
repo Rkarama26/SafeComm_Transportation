@@ -18,6 +18,10 @@ const options = {
         url: "http://localhost:4000",
         description: "Development server",
       },
+      {
+        url: "https://safecomm-transportation-9031.onrender.com",
+        description: "Production server",
+      }
     ],
     components: {
       securitySchemes: {

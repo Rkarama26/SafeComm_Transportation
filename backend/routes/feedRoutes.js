@@ -113,7 +113,13 @@ feedRouter.post("/import", importFeed);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-feedRouter.post("/ratings", protect, validateRequest, createRouteRating);
+feedRouter.post(
+  "/ratings",
+  authMiddleware(["user", "admin"]),
+  protect,
+  validateRequest,
+  createRouteRating
+);
 
 /**
  * @swagger
@@ -166,7 +172,12 @@ feedRouter.post("/ratings", protect, validateRequest, createRouteRating);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-feedRouter.get("/ratings/:routeId", validateRequest, getRouteRatings);
+feedRouter.get(
+  "/ratings/:routeId",
+  authMiddleware(["user", "admin"]),
+  validateRequest,
+  getRouteRatings
+);
 
 /**
  * @swagger
@@ -212,7 +223,12 @@ feedRouter.get("/ratings/:routeId", validateRequest, getRouteRatings);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-feedRouter.get("/ratings/user/my-ratings", protect, getUserRatings);
+feedRouter.get(
+  "/ratings/user/my-ratings",
+  authMiddleware(["user", "admin"]),
+  protect,
+  getUserRatings
+);
 
 /**
  * @swagger
@@ -272,6 +288,7 @@ feedRouter.get("/ratings/user/my-ratings", protect, getUserRatings);
  */
 feedRouter.put(
   "/ratings/:ratingId",
+  authMiddleware(["user", "admin"]),
   protect,
   validateRequest,
   updateRouteRating

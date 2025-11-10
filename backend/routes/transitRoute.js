@@ -13,6 +13,7 @@ const {
 } = require("../controllers/transitController");
 const { ensureGeospatialIndex } = require("../config/db");
 const { RateLimiter } = require("../middleware/rateLimiter");
+const authMiddleware = require("../middleware/auth_midleware");
 const transitRouter = express.Router();
 
 /**
@@ -43,7 +44,7 @@ const transitRouter = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-transitRouter.get("/routes", getAllRoutes);
+transitRouter.get("/routes", authMiddleware(["user", "admin"]), getAllRoutes);
 
 /**
  * @swagger
@@ -78,7 +79,11 @@ transitRouter.get("/routes", getAllRoutes);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-transitRouter.get("/routes/:route_id", getRouteDetails);
+transitRouter.get(
+  "/routes/:route_id",
+  authMiddleware(["user", "admin"]),
+  getRouteDetails
+);
 
 /**
  * @swagger
@@ -129,7 +134,11 @@ transitRouter.get("/routes/:route_id", getRouteDetails);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-transitRouter.get("/stops/nearby", getNearbyStops);
+transitRouter.get(
+  "/stops/nearby",
+  authMiddleware(["user", "admin"]),
+  getNearbyStops
+);
 
 /**
  * @swagger
@@ -180,7 +189,11 @@ transitRouter.get("/stops/nearby", getNearbyStops);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-transitRouter.get("/stops/:stop_id/schedule", getStopSchedule);
+transitRouter.get(
+  "/stops/:stop_id/schedule",
+  authMiddleware(["user", "admin"]),
+  getStopSchedule
+);
 
 /**
  * @swagger
@@ -226,7 +239,11 @@ transitRouter.get("/stops/:stop_id/schedule", getStopSchedule);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-transitRouter.get("/trips", getTripsForRoute);
+transitRouter.get(
+  "/trips",
+  authMiddleware(["user", "admin"]),
+  getTripsForRoute
+);
 
 /**
  * @swagger
@@ -272,7 +289,11 @@ transitRouter.get("/trips", getTripsForRoute);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-transitRouter.get("/routes/:route_id/realtime", getRouteWithRealtime);
+transitRouter.get(
+  "/routes/:route_id/realtime",
+  authMiddleware(["user", "admin"]),
+  getRouteWithRealtime
+);
 
 /**
  * @swagger
@@ -318,7 +339,11 @@ transitRouter.get("/routes/:route_id/realtime", getRouteWithRealtime);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-transitRouter.get("/stops/:stop_id/realtime", getStopWithRealtime);
+transitRouter.get(
+  "/stops/:stop_id/realtime",
+  authMiddleware(["user", "admin"]),
+  getStopWithRealtime
+);
 
 /**
  * @swagger
@@ -355,7 +380,11 @@ transitRouter.get("/stops/:stop_id/realtime", getStopWithRealtime);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-transitRouter.get("/vehicles/live", getLiveVehicles);
+transitRouter.get(
+  "/vehicles/live",
+  authMiddleware(["user", "admin"]),
+  getLiveVehicles
+);
 
 /**
  * @swagger
@@ -385,7 +414,11 @@ transitRouter.get("/vehicles/live", getLiveVehicles);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-transitRouter.post("/static/refresh", refreshStaticFeeds);
+transitRouter.post(
+  "/static/refresh",
+  authMiddleware(["user", "admin"]),
+  refreshStaticFeeds
+);
 
 //mapples routes - fetche from mapmyindia, no longer needed in this configuration
 //transitRouter.get("/routes/find", RateLimiter(10, 1), getRouteFromMappls);

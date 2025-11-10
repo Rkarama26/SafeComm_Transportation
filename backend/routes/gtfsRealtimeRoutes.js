@@ -8,6 +8,7 @@ const {
   addRealtimeFeed,
   removeRealtimeFeed,
 } = require("../controllers/gtfsRealtimeController");
+const authMiddleware = require("../middleware/auth_midleware");
 
 const gtfsRealtimeRouter = express.Router();
 
@@ -73,7 +74,7 @@ const gtfsRealtimeRouter = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-gtfsRealtimeRouter.get("/discover", discoverRealtimeFeeds);
+gtfsRealtimeRouter.get("/discover", authMiddleware(["user", "admin"]), discoverRealtimeFeeds);
 
 /**
  * @swagger

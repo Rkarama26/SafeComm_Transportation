@@ -4,7 +4,7 @@ const morgan = require("morgan");
 const app = express();
 
 //  middlewares
-// const cors = require("cors");
+const cors = require("cors");
 const helmet = require("helmet");
 const authRouter = require("./routes/authRoutes");
 const transitRouter = require("./routes/transitRoute");
@@ -14,7 +14,7 @@ const gtfsRealtimeQueryRouter = require("./routes/gtfsRealtimeQueryRoutes");
 const tokenRouter = require("./routes/tokenRoutes");
 const feedRouter = require("./routes/feedRoutes");
 app.use(helmet()); // Security headers
-// app.use(cors());                  // Enable CORS
+app.use(cors()); // Enable CORS
 // app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev")); // HTTP request logger
 app.use(express.json()); // Parse JSON request body

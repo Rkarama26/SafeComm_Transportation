@@ -33,10 +33,17 @@ const authRouter = express.Router();
  *           schema:
  *             type: object
  *             required:
+ *               - firstname
+ *               - lastname
  *               - email
  *               - password
- *               - name
  *             properties:
+ *               firstname:
+ *                 type: string
+ *                 description: User's first name
+ *               lastname:
+ *                 type: string
+ *                 description: User's last name
  *               email:
  *                 type: string
  *                 format: email
@@ -45,22 +52,45 @@ const authRouter = express.Router();
  *                 type: string
  *                 minLength: 6
  *                 description: User's password
- *               name:
+ *               role:
  *                 type: string
- *                 description: User's full name
+ *                 enum: [user, admin]
+ *                 default: user
+ *                 description: User role (optional, defaults to user)
  *     responses:
  *       201:
  *         description: User successfully registered
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Success'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Signup Success"
  *       400:
  *         description: Validation error or user already exists
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User with this email already exists"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Something went wrong"
+ *                 error:
+ *                   type: string
+ *                   description: Error details
  */
 authRouter.post("/signup", signupValidator, validateRequest, signup);
 
@@ -95,29 +125,48 @@ authRouter.post("/signup", signupValidator, validateRequest, signup);
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Login successful"
- *                 data:
- *                   type: object
- *                   properties:
- *                     accessToken:
- *                       type: string
- *                       description: JWT access token
- *                     refreshToken:
- *                       type: string
- *                       description: JWT refresh token
- *                     user:
- *                       $ref: '#/components/schemas/User'
- *       401:
- *         description: Invalid credentials
+ *                   example: "Login Success"
+ *                 accessToken:
+ *                   type: string
+ *                   description: JWT access token
+ *                 refreshToken:
+ *                   type: string
+ *                   description: JWT refresh token
+ *       403:
+ *         description: Wrong password
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Wrong Password"
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found, please signup"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Something went wrong"
+ *                 error:
+ *                   type: string
+ *                   description: Error details
  */
 authRouter.post("/login", loginValidator, validateRequest, login);
 
@@ -147,24 +196,42 @@ authRouter.post("/login", loginValidator, validateRequest, login);
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Token refreshed successfully"
- *                 data:
- *                   type: object
- *                   properties:
- *                     accessToken:
- *                       type: string
- *                       description: New JWT access token
+ *                   example: "New access token issued"
+ *                 accessToken:
+ *                   type: string
+ *                   description: New JWT access token
  *       401:
+ *         description: Refresh token required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Refresh token required"
+ *       403:
  *         description: Invalid or expired refresh token
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid or expired refresh token"
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
  */
 authRouter.post("/refresh", refreshToken);
 
@@ -174,21 +241,29 @@ authRouter.post("/refresh", refreshToken);
  *   post:
  *     summary: Logout user and blacklist tokens
  *     tags: [Authentication]
- *     security:
- *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: Refresh token to blacklist
  *     responses:
  *       200:
  *         description: Logout successful
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Success'
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Logged out successfully"
  */
 authRouter.post("/logout", logout);
 
@@ -217,13 +292,34 @@ authRouter.post("/logout", logout);
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Success'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Passsword reset link sent to registered email"
+ *                 link:
+ *                   type: string
+ *                   description: Password reset link (for development)
  *       404:
  *         description: User not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Something went wrong, please try again"
  */
 authRouter.post("/forget-password", forgetPassword);
 
@@ -233,6 +329,13 @@ authRouter.post("/forget-password", forgetPassword);
  *   post:
  *     summary: Reset password using reset token
  *     tags: [Authentication]
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Password reset token from email
  *     requestBody:
  *       required: true
  *       content:
@@ -240,29 +343,43 @@ authRouter.post("/forget-password", forgetPassword);
  *           schema:
  *             type: object
  *             required:
- *               - token
  *               - newPassword
  *             properties:
- *               token:
- *                 type: string
- *                 description: Password reset token from email
  *               newPassword:
  *                 type: string
  *                 minLength: 6
  *                 description: New password
  *     responses:
- *       200:
+ *       201:
  *         description: Password reset successful
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Success'
- *       400:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Password reset successfully"
+ *       403:
  *         description: Invalid or expired token
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Password reset link expired, plese click forget password again"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Something went wrong, please try again later"
  */
 authRouter.post("/reset-password", resetPassword);
 
@@ -303,29 +420,35 @@ authRouter.get("/google", authenticate);
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Google authentication successful"
- *                 data:
- *                   type: object
- *                   properties:
- *                     accessToken:
- *                       type: string
- *                       description: JWT access token
- *                     refreshToken:
- *                       type: string
- *                       description: JWT refresh token
- *                     user:
- *                       $ref: '#/components/schemas/User'
- *       401:
- *         description: Authentication failed
+ *                   example: "New user login successful"
+ *                 accessToken:
+ *                   type: string
+ *                   description: JWT access token
+ *                 refreshToken:
+ *                   type: string
+ *                   description: JWT refresh token
+ *       400:
+ *         description: No user found after Google login
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No user found after Google login"
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Something went wrong during OAuth"
  */
 authRouter.get(
   "/google/callback",
