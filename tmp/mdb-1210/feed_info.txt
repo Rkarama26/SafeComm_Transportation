@@ -1,0 +1,2 @@
+feed_publisher_name,feed_publisher_url,feed_lang,default_lang,feed_start_date,feed_end_date,feed_version,feed_contact_email,feed_contact_url
+GMV Syncromatics,https://gmvsyncromatics.com,en-US,en-US,20250314,,"183-DASH A Changes 3/15/2025 (current, restore after DASH A detour ends),47-Pacoima and PCVN changes 6-16-25,30-Pico Union Schedule Changes 6-21,45-South CE-DASH",support@gmvsync.com,https://gmvsyncromatics.com/contact
