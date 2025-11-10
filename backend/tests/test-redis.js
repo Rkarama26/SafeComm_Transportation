@@ -1,4 +1,4 @@
-const redisService = require("./services/redisService");
+const redisService = require("../services/redisService");
 
 async function testRedisIntegration() {
   console.log(

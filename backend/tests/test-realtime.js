@@ -7,7 +7,7 @@
  */
 
 require("dotenv").config();
-const gtfsRealtimeService = require("./services/gtfsRealtimeService");
+const gtfsRealtimeService = require("../services/gtfsRealtimeService");
 
 async function runTests() {
   console.log("GTFS-RT Service Test Suite\n");

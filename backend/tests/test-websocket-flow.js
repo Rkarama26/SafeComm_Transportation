@@ -12,7 +12,7 @@ dotenv.config();
     );
     console.log("✓ Connected to MongoDB");
 
-    const { VehiclePositionModel } = require("./gtfs_models/RealtimeModels");
+    const { VehiclePositionModel } = require("../gtfs_models/RealtimeModels");
 
     // Check vehicles in MongoDB
     const allVehicles = await VehiclePositionModel.find().limit(5).lean();
