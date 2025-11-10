@@ -29,9 +29,13 @@ const createGeospatialIndexes = async () => {
 
     // Import models after connection to ensure indexes are created
     const StopModel = require("../gtfs_models/Stop.js");
+    const {
+      RealtimeFeedMetadataModel,
+    } = require("../gtfs_models/RealtimeModels");
 
     // The index is now defined in the schema, but we can ensure it's built
     await StopModel.ensureIndexes();
+    await RealtimeFeedMetadataModel.ensureIndexes();
 
     console.log(" Geospatial indexes ensured successfully");
   } catch (error) {

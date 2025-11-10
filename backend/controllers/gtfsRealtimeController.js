@@ -1,4 +1,5 @@
 const gtfsRealtimeService = require("../services/gtfsRealtimeService");
+const gtfsRealtimeParser = require("../services/gtfsRealtimeParser");
 
 /**
  * Discover GTFS Realtime feeds
@@ -180,7 +181,7 @@ const getRealtimeFeedUrls = async (req, res) => {
 };
 
 /**
- * Get raw realtime feed data (protobuf)
+ * Get parsed realtime feed data (JSON)
  * GET /api/gtfs-rt/feed/:realtimeFeedId/data
  */
 const getRealtimeFeedData = async (req, res) => {
@@ -194,7 +195,9 @@ const getRealtimeFeedData = async (req, res) => {
       });
     }
 
-    console.log(`Fetching data for realtime feed: ${realtimeFeedId}`);
+    console.log(
+      `Fetching and parsing data for realtime feed: ${realtimeFeedId}`
+    );
 
     // Get feed URLs first
     const feedUrls = await gtfsRealtimeService.getRealtimeFeedUrls(
@@ -208,16 +211,27 @@ const getRealtimeFeedData = async (req, res) => {
       });
     }
 
-    // Fetch data from first available URL
+    // Fetch protobuf data from first available URL
     const firstUrl = feedUrls.realtimeUrls[0].url;
-    console.log(`Fetching from URL: ${firstUrl}`);
+    console.log(`Fetching protobuf from URL: ${firstUrl}`);
 
     const protoBuffer = await gtfsRealtimeService.fetchRealtimeData(firstUrl);
 
-    // Send protobuf data directly
-    res.setHeader("Content-Type", "application/x-protobuf");
-    res.setHeader("Content-Length", protoBuffer.length);
-    res.send(protoBuffer);
+    // Parse protobuf to readable JSON
+    console.log(`Parsing ${protoBuffer.length} bytes of protobuf data`);
+    const parsedData = await gtfsRealtimeParser.parseRealtimeData(
+      protoBuffer,
+      realtimeFeedId,
+      feedUrls.staticFeedReferences?.[0] // Use first static feed reference
+    );
+
+    // Return parsed JSON data
+    res.json({
+      success: true,
+      feedId: realtimeFeedId,
+      sourceUrl: firstUrl,
+      data: parsedData,
+    });
   } catch (error) {
     console.error("Error in getRealtimeFeedData controller:", error.message);
 
@@ -235,10 +249,91 @@ const getRealtimeFeedData = async (req, res) => {
   }
 };
 
+/**
+ * Add a realtime feed to active monitoring
+ * POST /api/gtfs-rt/feed/:realtimeFeedId/add
+ */
+const addRealtimeFeed = async (req, res) => {
+  try {
+    const { realtimeFeedId } = req.params;
+
+    if (!realtimeFeedId) {
+      return res.status(400).json({
+        success: false,
+        message: "Realtime feed ID is required",
+      });
+    }
+
+    const result = await gtfsRealtimeService.addRealtimeFeed(realtimeFeedId);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.message,
+        data: result.feed,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.error,
+      });
+    }
+  } catch (error) {
+    console.error("Error in addRealtimeFeed controller:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/**
+ * Remove a realtime feed from active monitoring
+ * POST /api/gtfs-rt/feed/:realtimeFeedId/remove
+ */
+const removeRealtimeFeed = async (req, res) => {
+  try {
+    const { realtimeFeedId } = req.params;
+
+    if (!realtimeFeedId) {
+      return res.status(400).json({
+        success: false,
+        message: "Realtime feed ID is required",
+      });
+    }
+
+    const result = await gtfsRealtimeService.removeRealtimeFeed(realtimeFeedId);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.message,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.error,
+      });
+    }
+  } catch (error) {
+    console.error("Error in removeRealtimeFeed controller:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   discoverRealtimeFeeds,
   findRealtimeFeedsForStaticFeed,
   getRealtimeFeedById,
   getRealtimeFeedUrls,
   getRealtimeFeedData,
+  addRealtimeFeed,
+  removeRealtimeFeed,
 };

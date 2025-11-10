@@ -1,4 +1,6 @@
 const transitService = require("../services/transitService");
+const redisService = require("../services/redisService");
+const { VehiclePositionModel } = require("../gtfs_models/RealtimeModels");
 
 // GET /api/transit/routes?feedId=mdb-1210&page=1&limit=10
 const getAllRoutes = async (req, res) => {
@@ -75,54 +77,237 @@ const getTripsForRoute = async (req, res) => {
   }
 };
 
-// GET or create route via Mappls
-const getRouteFromMappls = async (req, res) => {
+// GET /api/transit/routes/:route_id/realtime
+const getRouteWithRealtime = async (req, res) => {
   try {
-    const { source, destination, startLat, startLon, endLat, endLon } =
-      req.query;
+    const { route_id } = req.params;
 
-    //  Validate source & destination
-    if (!source || !destination) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide both source and destination.",
-      });
+    // Get static route data
+    const routeData = await transitService.getRouteDetails(route_id);
+
+    if (!routeData.success) {
+      return res.status(404).json(routeData);
     }
 
-    //  Validate optional coordinates (if partially provided)
-    const coords = [startLat, startLon, endLat, endLon];
-    const hasAnyCoord = coords.some((v) => v !== undefined && v !== "");
-    const hasAllCoords = coords.every((v) => v !== undefined && v !== "");
+    // Try Redis first for realtime vehicles
+    let vehicles = [];
+    const redisConnected = await redisService.isConnected();
 
-    if (hasAnyCoord && !hasAllCoords) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "If you provide one coordinate (startLat/startLon/endLat/endLon), you must provide all four.",
-      });
+    if (redisConnected) {
+      vehicles = await redisService.getVehiclesByRoute(route_id);
     }
 
-    //  Fetch route (DB or Mappls)
-    const route = await transitService.getRouteFromMappls(
-      source,
-      destination,
-      startLat,
-      startLon,
-      endLat,
-      endLon
-    );
+    // If no vehicles in Redis or Redis not connected, fallback to MongoDB
+    if (vehicles.length === 0) {
+      vehicles = await VehiclePositionModel.find({
+        routeId: route_id,
+        timestamp: { $gt: new Date(Date.now() - 300000) }, // Last 5 minutes
+      }).sort({ timestamp: -1 });
+    }
 
-    res.status(200).json({
+    // Combine static and realtime data
+    const combinedData = {
+      ...routeData.data,
+      realtime: {
+        activeVehicles: vehicles.length,
+        vehicles: vehicles.map((vehicle) => ({
+          id: vehicle.vehicleId || vehicle.id,
+          position: {
+            lat: vehicle.latitude,
+            lng: vehicle.longitude,
+            bearing: vehicle.bearing,
+            speed: vehicle.speed,
+          },
+          currentStopSequence: vehicle.currentStopSequence,
+          stopId: vehicle.stopId,
+          status: vehicle.currentStatus,
+          congestionLevel: vehicle.congestionLevel,
+          occupancyStatus: vehicle.occupancyStatus,
+          occupancyPercentage: vehicle.occupancyPercentage,
+          timestamp: vehicle.timestamp,
+        })),
+        lastUpdated: vehicles.length > 0 ? vehicles[0].timestamp : null,
+        source: redisConnected && vehicles.length > 0 ? "redis" : "mongodb",
+      },
+    };
+
+    res.json({
       success: true,
-      source: route.sourceType, // 'database' or 'Mappls API'
-      data: route.data,
+      data: combinedData,
     });
-  } catch (error) {
-    console.error("Mappls route error:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get route from Mappls.",
+  } catch (err) {
+    console.error("Error in getRouteWithRealtime:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET /api/transit/stops/:stop_id/realtime
+const getStopWithRealtime = async (req, res) => {
+  try {
+    const { stop_id } = req.params;
+
+    // Get static stop data (you might need to add this to transitService)
+    // For now, we'll focus on realtime vehicles near this stop
+    const stopData = {
+      stopId: stop_id,
+      // You can add static stop info here when available
+    };
+
+    // Try Redis first for vehicles approaching this stop
+    let vehicles = [];
+    const redisConnected = await redisService.isConnected();
+
+    if (redisConnected) {
+      // Get all vehicles from Redis and filter by stopId
+      const allVehicles = await redisService.getAllVehiclePositions();
+      vehicles = allVehicles.filter((vehicle) => vehicle.stopId === stop_id);
+    }
+
+    // If no vehicles in Redis or Redis not connected, fallback to MongoDB
+    if (vehicles.length === 0) {
+      vehicles = await VehiclePositionModel.find({
+        stopId: stop_id,
+        timestamp: { $gt: new Date(Date.now() - 600000) }, // Last 10 minutes
+      })
+        .sort({ timestamp: -1 })
+        .limit(10);
+    }
+
+    // Also get vehicles near this stop geographically (if we had stop coordinates)
+    // This would require getting stop coordinates from static data first
+
+    res.json({
+      success: true,
+      data: {
+        ...stopData,
+        realtime: {
+          approachingVehicles: vehicles.length,
+          vehicles: vehicles.map((vehicle) => ({
+            id: vehicle.vehicleId || vehicle.id,
+            routeId: vehicle.routeId,
+            tripId: vehicle.tripId,
+            distance: null, // Would need stop coordinates to calculate
+            eta: null, // Would need to calculate based on current position and speed
+            currentStopSequence: vehicle.currentStopSequence,
+            status: vehicle.currentStatus,
+            timestamp: vehicle.timestamp,
+          })),
+          lastUpdated: vehicles.length > 0 ? vehicles[0].timestamp : null,
+          source: redisConnected && vehicles.length > 0 ? "redis" : "mongodb",
+        },
+      },
     });
+  } catch (err) {
+    console.error("Error in getStopWithRealtime:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/transit/static/refresh
+const refreshStaticFeeds = async (req, res) => {
+  try {
+    // This would trigger re-importing of static GTFS feeds
+    // For now, we'll return a placeholder response
+    res.json({
+      success: true,
+      message: "Static feed refresh initiated",
+      note: "Automatic refresh job would run weekly to update static GTFS data",
+    });
+  } catch (err) {
+    console.error("Error in refreshStaticFeeds:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET /api/transit/vehicles/live
+const getLiveVehicles = async (req, res) => {
+  try {
+    const { routeId, limit = 1000, bbox } = req.query;
+
+    let vehicles = [];
+    let source = "mongodb"; // Default fallback
+    const redisConnected = await redisService.isConnected();
+
+    // Try Redis first for fastest response
+    if (redisConnected) {
+      vehicles = await redisService.getAllVehiclePositions();
+      source = "redis";
+
+      // Apply filters to Redis data
+      if (routeId) {
+        vehicles = vehicles.filter((v) => v.routeId === routeId);
+      }
+
+      if (bbox) {
+        const [minLng, minLat, maxLng, maxLat] = bbox
+          .split(",")
+          .map(parseFloat);
+        vehicles = vehicles.filter(
+          (v) =>
+            v.longitude >= minLng &&
+            v.longitude <= maxLng &&
+            v.latitude >= minLat &&
+            v.latitude <= maxLat
+        );
+      }
+    }
+
+    // If no vehicles in Redis or Redis not connected, fallback to MongoDB
+    if (vehicles.length === 0 && !redisConnected) {
+      let query = {
+        timestamp: { $gt: new Date(Date.now() - 300000) }, // Last 5 minutes
+      };
+
+      if (routeId) {
+        query.routeId = routeId.toString();
+      }
+
+      // Optional bounding box filter
+      if (bbox) {
+        const [minLng, minLat, maxLng, maxLat] = bbox
+          .split(",")
+          .map(parseFloat);
+        query.longitude = { $gte: minLng, $lte: maxLng };
+        query.latitude = { $gte: minLat, $lte: maxLat };
+      }
+
+      vehicles = await VehiclePositionModel.find(query)
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit));
+      source = "mongodb";
+    }
+
+    // Limit results
+    vehicles = vehicles.slice(0, parseInt(limit));
+
+    res.json({
+      success: true,
+      count: vehicles.length,
+      data: vehicles.map((vehicle) => ({
+        id: vehicle.vehicleId || vehicle.id,
+        routeId: vehicle.routeId,
+        tripId: vehicle.tripId,
+        position: {
+          lat: vehicle.latitude,
+          lng: vehicle.longitude,
+          bearing: vehicle.bearing,
+          speed: vehicle.speed,
+        },
+        currentStopSequence: vehicle.currentStopSequence,
+        stopId: vehicle.stopId,
+        status: vehicle.currentStatus,
+        congestionLevel: vehicle.congestionLevel,
+        occupancyStatus: vehicle.occupancyStatus,
+        occupancyPercentage: vehicle.occupancyPercentage,
+        feedId: vehicle.realtimeFeedId || vehicle.feedId,
+        timestamp: vehicle.timestamp,
+      })),
+      timestamp: new Date(),
+      source: source, // Indicates whether data came from Redis or MongoDB
+    });
+  } catch (err) {
+    console.error("Error in getLiveVehicles:", err.message);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -132,5 +317,8 @@ module.exports = {
   getNearbyStops,
   getStopSchedule,
   getTripsForRoute,
-  getRouteFromMappls,
+  getRouteWithRealtime,
+  getStopWithRealtime,
+  getLiveVehicles,
+  refreshStaticFeeds,
 };

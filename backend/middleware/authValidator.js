@@ -1,4 +1,4 @@
-const { body, validationResult } = require("express-validator");
+const { body, validationResult, param } = require("express-validator");
 
 // Middleware to handle validation result
 const validateRequest = (req, res, next) => {
@@ -57,8 +57,36 @@ const loginValidator = [
   body("password").trim().notEmpty().withMessage("Password is required"),
 ];
 
+// Route Rating validation rules
+const validateRatingInput = [
+  body("routeId")
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage("Route ID is required"),
+
+  body("rating")
+    .notEmpty()
+    .withMessage("Rating is required")
+    .isInt({ min: 1, max: 5 })
+    .withMessage("Rating must be an integer between 1 and 5"),
+
+  body("feedback")
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage("Feedback must not exceed 500 characters"),
+];
+
+// Route ID validation
+const validateRouteId = [
+  param("routeId").trim().notEmpty().withMessage("Route ID is required"),
+];
+
 module.exports = {
   validateRequest,
   signupValidator,
   loginValidator,
+  validateRatingInput,
+  validateRouteId,
 };

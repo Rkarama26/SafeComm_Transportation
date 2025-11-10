@@ -1,5 +1,6 @@
 const axios = require("axios");
 const { getAccessToken } = require("./tokenService");
+const { RealtimeFeedMetadataModel } = require("../gtfs_models/RealtimeModels");
 
 const MOBILITY_BASE_URL =
   process.env.MOBILITY_BASE_URL || "https://api.mobilitydatabase.org/v1";
@@ -69,7 +70,9 @@ async function discoverRealtimeFeeds(filters = {}) {
       );
     }
     if (filters.data_type) params.append("data_type", filters.data_type);
-
+    if (filters.entity_types)
+      params.append("entity_types", filters.entity_types);
+    if (filters.is_official) params.append("is_official", filters.is_official);
     // Remove undefined/null parameters
     for (const [key, value] of params.entries()) {
       if (value === null || value === undefined || value === "") {
@@ -186,8 +189,9 @@ async function findRealtimeFeedsForStaticFeed(staticFeedId) {
 }
 
 /**
- * Get a specific realtime feed by ID
- *  @param {string} realtimeFeedId - The realtime feed ID (e.g., "mdb-35")
+ * Get a specific realtime feed by ID with caching
+ * First checks database cache (1 week TTL), then fetches from API if needed
+ * @param {string} realtimeFeedId - The realtime feed ID (e.g., "mdb-35")
  * @returns {Promise<Object>} Realtime feed information
  */
 async function getRealtimeFeedById(realtimeFeedId) {
@@ -196,14 +200,50 @@ async function getRealtimeFeedById(realtimeFeedId) {
       throw new Error("Realtime feed ID is required");
     }
 
+    console.log(`Getting realtime feed: ${realtimeFeedId}`);
+
+    // First, check cache in database (feeds auto-expire after 1 week)
+    const cachedFeed = await RealtimeFeedMetadataModel.findOne({
+      realtimeFeedId: realtimeFeedId,
+    });
+
+    if (cachedFeed) {
+      console.log(`Found cached feed data for ${realtimeFeedId}`);
+      // Convert database format back to API format
+      return {
+        id: cachedFeed.realtimeFeedId,
+        provider: cachedFeed.provider,
+        feed_name: cachedFeed.provider, // Map back to API format
+        staticFeedReferences: cachedFeed.staticFeedReferences,
+        entityTypes: cachedFeed.entityTypes,
+        locations: [], // Not stored in cache
+        sourceInfo:
+          cachedFeed.realtimeUrls && cachedFeed.realtimeUrls.length > 0
+            ? {
+                producerUrl: cachedFeed.realtimeUrls[0].url,
+                authenticationType: cachedFeed.realtimeUrls[0].authentication,
+                authenticationInfoUrl: null,
+                apiKeyParameterName: null,
+                licenseUrl: null,
+              }
+            : null,
+        status: "active",
+        isOfficial: true,
+        createdAt: cachedFeed.createdAt,
+        officialUpdatedAt: cachedFeed.lastUpdated,
+        realtimeSources: cachedFeed.realtimeUrls || [],
+      };
+    }
+
+    // Not in cache, fetch from API
+    console.log(`Feed ${realtimeFeedId} not in cache, fetching from API`);
+
     const token = await getAccessToken();
     if (!token) {
       throw new Error(
         "Failed to obtain access token for Mobility Database API"
       );
     }
-
-    console.log(`Fetching realtime feed: ${realtimeFeedId}`);
 
     const response = await axios.get(
       `${MOBILITY_BASE_URL}/gtfs_rt_feeds/${realtimeFeedId}`,
@@ -228,7 +268,47 @@ async function getRealtimeFeedById(realtimeFeedId) {
       }`
     );
 
-    // Normalize feed response
+    // Store in cache for future use
+    try {
+      const normalizedFeed = normalizeFeedResponse(feed);
+
+      // Convert to database format
+      const feedMetadata = {
+        realtimeFeedId: normalizedFeed.id,
+        staticFeedReferences: normalizedFeed.staticFeedReferences,
+        provider: normalizedFeed.provider,
+        country: normalizedFeed.locations?.[0]?.country_code,
+        entityTypes: normalizedFeed.entityTypes,
+        realtimeUrls: normalizedFeed.sourceInfo
+          ? [
+              {
+                url: normalizedFeed.sourceInfo.producerUrl,
+                type: normalizedFeed.entityTypes?.[0] || "unknown",
+                authentication:
+                  normalizedFeed.sourceInfo.authenticationType || 0,
+              },
+            ]
+          : [],
+        lastUpdated: new Date(),
+        isActive: true,
+      };
+
+      await RealtimeFeedMetadataModel.findOneAndUpdate(
+        { realtimeFeedId: normalizedFeed.id },
+        feedMetadata,
+        { upsert: true, new: true }
+      );
+
+      console.log(`Cached feed data for ${realtimeFeedId} in database`);
+    } catch (cacheError) {
+      console.warn(
+        `Failed to cache feed ${realtimeFeedId}:`,
+        cacheError.message
+      );
+      // Continue anyway - caching failure shouldn't break the API
+    }
+
+    // Return normalized feed response
     return normalizeFeedResponse(feed);
   } catch (error) {
     console.error(
@@ -386,10 +466,123 @@ async function getRealtimeFeedUrls(realtimeFeedId) {
   }
 }
 
+/**
+ * Add a realtime feed to the active feeds collection
+ * @param {string} realtimeFeedId - The realtime feed ID to add
+ * @returns {Promise<Object>} Result of the operation
+ */
+async function addRealtimeFeed(realtimeFeedId) {
+  try {
+    if (!realtimeFeedId) {
+      throw new Error("Realtime feed ID is required");
+    }
+
+    console.log(`Adding realtime feed: ${realtimeFeedId}`);
+
+    // First, get the feed data (this will cache it if not already cached)
+    const feed = await getRealtimeFeedById(realtimeFeedId);
+
+    // Check if it's already in the active collection
+    const existing = await RealtimeFeedMetadataModel.findOne({
+      realtimeFeedId: realtimeFeedId,
+      isActive: true,
+    });
+
+    if (existing) {
+      console.log(`Feed ${realtimeFeedId} is already active`);
+      return {
+        success: true,
+        message: `Feed ${realtimeFeedId} is already active`,
+        feed: feed,
+      };
+    }
+
+    // Update the feed to be active
+    await RealtimeFeedMetadataModel.findOneAndUpdate(
+      { realtimeFeedId: realtimeFeedId },
+      {
+        isActive: true,
+        updatedAt: new Date(),
+      },
+      { upsert: true }
+    );
+
+    console.log(`Successfully added feed ${realtimeFeedId} to active feeds`);
+
+    return {
+      success: true,
+      message: `Successfully added feed ${realtimeFeedId} to active feeds`,
+      feed: feed,
+    };
+  } catch (error) {
+    console.error(
+      `Error adding realtime feed ${realtimeFeedId}:`,
+      error.message
+    );
+    return {
+      success: false,
+      error: error.message,
+      message: `Failed to add feed ${realtimeFeedId}`,
+    };
+  }
+}
+
+/**
+ * Remove a realtime feed from the active feeds collection
+ * @param {string} realtimeFeedId - The realtime feed ID to remove
+ * @returns {Promise<Object>} Result of the operation
+ */
+async function removeRealtimeFeed(realtimeFeedId) {
+  try {
+    if (!realtimeFeedId) {
+      throw new Error("Realtime feed ID is required");
+    }
+
+    console.log(`Removing realtime feed: ${realtimeFeedId}`);
+
+    const result = await RealtimeFeedMetadataModel.findOneAndUpdate(
+      { realtimeFeedId: realtimeFeedId },
+      {
+        isActive: false,
+        updatedAt: new Date(),
+      }
+    );
+
+    if (!result) {
+      return {
+        success: false,
+        message: `Feed ${realtimeFeedId} not found`,
+      };
+    }
+
+    console.log(
+      `Successfully removed feed ${realtimeFeedId} from active feeds`
+    );
+
+    return {
+      success: true,
+      message: `Successfully removed feed ${realtimeFeedId} from active feeds`,
+    };
+  } catch (error) {
+    console.error(
+      `Error removing realtime feed ${realtimeFeedId}:`,
+      error.message
+    );
+    return {
+      success: false,
+      error: error.message,
+      message: `Failed to remove feed ${realtimeFeedId}`,
+    };
+  }
+}
+
 module.exports = {
   discoverRealtimeFeeds,
   findRealtimeFeedsForStaticFeed,
   getRealtimeFeedById,
-  fetchRealtimeData,
   getRealtimeFeedUrls,
+  getRealtimeFeedData: fetchRealtimeData,
+  addRealtimeFeed,
+  removeRealtimeFeed,
+  fetchRealtimeData,
 };

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SafeComm Transportation - Live Vehicle Tracking</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        text-align: center;
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        text-align: center;
+      }
+      .status.connected {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      .status.disconnected {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+      .controls {
+        margin: 20px 0;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      button {
+        padding: 8px 16px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      button:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+      }
+      .vehicle-list {
+        margin-top: 20px;
+      }
+      .vehicle-item {
+        padding: 10px;
+        margin: 5px 0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #f9f9f9;
+      }
+      .vehicle-header {
+        font-weight: bold;
+        color: #333;
+      }
+      .vehicle-details {
+        margin-top: 5px;
+        font-size: 0.9em;
+        color: #666;
+      }
+      .stats {
+        display: flex;
+        justify-content: space-around;
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+      }
+      .stat-item {
+        text-align: center;
+      }
+      .stat-value {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #007bff;
+      }
+      .stat-label {
+        color: #666;
+        font-size: 0.9em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🚍 SafeComm Transportation - Live Vehicle Tracking</h1>
+
+      <div id="connectionStatus" class="status disconnected">
+        Connecting to realtime service...
+      </div>
+
+      <div class="stats">
+        <div class="stat-item">
+          <div class="stat-value" id="vehicleCount">0</div>
+          <div class="stat-label">Active Vehicles</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="connectedClients">0</div>
+          <div class="stat-label">Connected Clients</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="lastUpdate">--:--:--</div>
+          <div class="stat-label">Last Update</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="connectBtn">Connect</button>
+        <button id="disconnectBtn" disabled>Disconnect</button>
+        <button id="requestVehiclesBtn" disabled>Request All Vehicles</button>
+        <button id="clearBtn">Clear Display</button>
+        <input
+          type="text"
+          id="routeFilter"
+          placeholder="Filter by route ID (optional)"
+        />
+        <button id="subscribeRouteBtn" disabled>Subscribe to Route</button>
+      </div>
+
+      <div class="vehicle-list">
+        <h3>Live Vehicle Positions</h3>
+        <div id="vehicleContainer">
+          <p>
+            No vehicle data received yet. Click "Request All Vehicles" or wait
+            for automatic updates.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      class VehicleTracker {
+        constructor() {
+          this.socket = null;
+          this.connected = false;
+          this.vehicles = new Map();
+          this.lastUpdate = null;
+
+          this.initElements();
+          this.bindEvents();
+        }
+
+        initElements() {
+          this.connectionStatus = document.getElementById("connectionStatus");
+          this.vehicleCount = document.getElementById("vehicleCount");
+          this.connectedClients = document.getElementById("connectedClients");
+          this.lastUpdate = document.getElementById("lastUpdate");
+          this.vehicleContainer = document.getElementById("vehicleContainer");
+
+          this.connectBtn = document.getElementById("connectBtn");
+          this.disconnectBtn = document.getElementById("disconnectBtn");
+          this.requestVehiclesBtn =
+            document.getElementById("requestVehiclesBtn");
+          this.clearBtn = document.getElementById("clearBtn");
+          this.routeFilter = document.getElementById("routeFilter");
+          this.subscribeRouteBtn = document.getElementById("subscribeRouteBtn");
+        }
+
+        bindEvents() {
+          this.connectBtn.addEventListener("click", () => this.connect());
+          this.disconnectBtn.addEventListener("click", () => this.disconnect());
+          this.requestVehiclesBtn.addEventListener("click", () =>
+            this.requestVehicles()
+          );
+          this.clearBtn.addEventListener("click", () => this.clearVehicles());
+          this.subscribeRouteBtn.addEventListener("click", () =>
+            this.subscribeToRoute()
+          );
+        }
+
+        connect() {
+          if (this.socket) {
+            this.socket.disconnect();
+          }
+
+          // Connect to your backend WebSocket server
+          this.socket = io("http://localhost:4000");
+
+          this.socket.on("connect", () => {
+            this.connected = true;
+            this.updateConnectionStatus(true);
+            console.log("Connected to realtime service");
+
+            // Automatically request vehicles when connected
+            setTimeout(() => this.requestVehicles(), 1000);
+          });
+
+          this.socket.on("disconnect", () => {
+            this.connected = false;
+            this.updateConnectionStatus(false);
+            console.log("Disconnected from realtime service");
+          });
+
+          this.socket.on("connected", (data) => {
+            console.log("Server connection confirmed:", data);
+            this.updateConnectedClients(data.connectedClients);
+          });
+
+          // Listen for vehicle updates
+          this.socket.on("vehicle-update", (vehicles) => {
+            this.handleVehicleUpdate(vehicles);
+          });
+
+          // Listen for route-specific updates
+          this.socket.on("route-vehicle-update", (data) => {
+            console.log(`Route ${data.routeId} update:`, data.vehicles);
+            this.handleVehicleUpdate(data.vehicles);
+          });
+
+          // Listen for data availability notifications
+          this.socket.on("data-updated", (data) => {
+            console.log("New data available:", data);
+            // Automatically request updated vehicle data
+            this.requestVehicles();
+          });
+
+          this.socket.on("error", (error) => {
+            console.error("Socket error:", error);
+            this.showError("Connection error: " + error.message);
+          });
+        }
+
+        disconnect() {
+          if (this.socket) {
+            this.socket.disconnect();
+            this.socket = null;
+          }
+          this.connected = false;
+          this.updateConnectionStatus(false);
+        }
+
+        requestVehicles() {
+          if (!this.socket || !this.connected) {
+            this.showError("Not connected to server");
+            return;
+          }
+
+          const filters = {};
+          const routeId = this.routeFilter.value.trim();
+          if (routeId) {
+            filters.routeId = routeId;
+          }
+
+          this.socket.emit("request-vehicles", filters);
+          console.log("Requested vehicles with filters:", filters);
+
+          // Show loading message
+          this.vehicleContainer.innerHTML =
+            "<p>🔄 Requesting vehicle data from server...</p>";
+        }
+
+        subscribeToRoute() {
+          if (!this.socket || !this.connected) {
+            this.showError("Not connected to server");
+            return;
+          }
+
+          const routeId = this.routeFilter.value.trim();
+          if (!routeId) {
+            this.showError("Please enter a route ID to subscribe");
+            return;
+          }
+
+          this.socket.emit("subscribe-route", routeId);
+          console.log("Subscribed to route:", routeId);
+        }
+
+        handleVehicleUpdate(vehicles) {
+          console.log(`Received ${vehicles.length} vehicle updates`);
+
+          vehicles.forEach((vehicle) => {
+            this.vehicles.set(vehicle.id, vehicle);
+          });
+
+          this.updateLastUpdate();
+          this.updateVehicleCount();
+          this.displayVehicles();
+        }
+
+        displayVehicles() {
+          if (this.vehicles.size === 0) {
+            this.vehicleContainer.innerHTML =
+              "<p>No vehicle data available.</p>";
+            return;
+          }
+
+          const vehicleArray = Array.from(this.vehicles.values());
+          const html = vehicleArray
+            .map((vehicle) => this.createVehicleHTML(vehicle))
+            .join("");
+
+          this.vehicleContainer.innerHTML = html;
+        }
+
+        createVehicleHTML(vehicle) {
+          const timestamp = new Date(vehicle.timestamp).toLocaleTimeString();
+          const speed = vehicle.position.speed
+            ? `${vehicle.position.speed.toFixed(1)} mph`
+            : "N/A";
+
+          return `
+                    <div class="vehicle-item">
+                        <div class="vehicle-header">
+                            🚍 Vehicle ${vehicle.id}
+                            ${
+                              vehicle.routeId
+                                ? ` (Route: ${vehicle.routeId})`
+                                : ""
+                            }
+                        </div>
+                        <div class="vehicle-details">
+                            📍 Position: ${vehicle.position.lat.toFixed(
+                              6
+                            )}, ${vehicle.position.lng.toFixed(6)}<br>
+                            🕐 Last Update: ${timestamp}<br>
+                            🧭 Bearing: ${
+                              vehicle.position.bearing || "N/A"
+                            }°<br>
+                            🏎️ Speed: ${speed}<br>
+                            📊 Status: ${this.getStatusText(vehicle.status)}<br>
+                            📡 Feed: ${vehicle.feedId}
+                        </div>
+                    </div>
+                `;
+        }
+
+        getStatusText(status) {
+          const statusMap = {
+            0: "In Transit",
+            1: "At Stop",
+            2: "Not In Service",
+          };
+          return statusMap[status] || "Unknown";
+        }
+
+        clearVehicles() {
+          this.vehicles.clear();
+          this.updateVehicleCount();
+          this.vehicleContainer.innerHTML =
+            '<p>Display cleared. Click "Request All Vehicles" for fresh data.</p>';
+        }
+
+        updateConnectionStatus(connected) {
+          this.connectionStatus.className = `status ${
+            connected ? "connected" : "disconnected"
+          }`;
+          this.connectionStatus.textContent = connected
+            ? "🟢 Connected to realtime service"
+            : "🔴 Disconnected from realtime service";
+
+          this.connectBtn.disabled = connected;
+          this.disconnectBtn.disabled = !connected;
+          this.requestVehiclesBtn.disabled = !connected;
+          this.subscribeRouteBtn.disabled = !connected;
+        }
+
+        updateConnectedClients(count) {
+          this.connectedClients.textContent = count;
+        }
+
+        updateVehicleCount() {
+          this.vehicleCount.textContent = this.vehicles.size;
+        }
+
+        updateLastUpdate() {
+          const now = new Date();
+          this.lastUpdate.textContent = now.toLocaleTimeString();
+        }
+
+        showError(message) {
+          // Create a temporary error message
+          const errorDiv = document.createElement("div");
+          errorDiv.style.cssText =
+            "color: red; padding: 10px; margin: 10px 0; border: 1px solid red; border-radius: 4px; background-color: #ffe6e6;";
+          errorDiv.textContent = `Error: ${message}`;
+
+          document
+            .querySelector(".container")
+            .insertBefore(errorDiv, document.querySelector(".stats"));
+
+          setTimeout(() => {
+            errorDiv.remove();
+          }, 5000);
+        }
+      }
+
+      // Initialize the tracker when page loads
+      document.addEventListener("DOMContentLoaded", () => {
+        window.vehicleTracker = new VehicleTracker();
+        // Automatically connect when page loads
+        setTimeout(() => window.vehicleTracker.connect(), 500);
+      });
+    </script>
+  </body>
+</html>

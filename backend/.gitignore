@@ -14,3 +14,8 @@ npm-debug.log*
 .env.production.local
 
 tmp/
+
+# Documentation Files (except README.md)
+*.md
+!README.md
+
