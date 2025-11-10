@@ -21,7 +21,7 @@ const options = {
       {
         url: "https://safecomm-transportation-9031.onrender.com",
         description: "Production server",
-      }
+      },
     ],
     components: {
       securitySchemes: {
@@ -253,11 +253,65 @@ const options = {
 const specs = swaggerJSDoc(options);
 
 const setupSwagger = (app) => {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+  // Swagger UI options
+  const swaggerOptions = {
+    explorer: true,
+    swaggerOptions: {
+      docExpansion: "list",
+      filter: true,
+      showRequestDuration: true,
+    },
+    customCss: `
+      .swagger-ui .topbar { display: none }
+      .swagger-ui .info .title { color: #3b4151 }
+    `,
+    customSiteTitle: "SafeComm Transportation API Documentation",
+    customfavIcon: "/favicon.ico",
+  };
 
-  // Redirect root to API docs
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs, swaggerOptions));
+
+  // Health check endpoint
+  app.get("/api/health", (req, res) => {
+    res.status(200).json({
+      status: "OK",
+      message: "SafeComm Transportation API is running",
+      timestamp: new Date().toISOString(),
+      swaggerDocs: `${req.protocol}://${req.get("host")}/api-docs`,
+    });
+  });
+
+  // API info endpoint
+  app.get("/api", (req, res) => {
+    res.status(200).json({
+      name: "SafeComm Transportation API",
+      version: "1.0.0",
+      description: "Real-time transit tracking and safety reporting API",
+      documentation: `${req.protocol}://${req.get("host")}/api-docs`,
+      endpoints: {
+        auth: "/api/auth",
+        transit: "/api/transit",
+        gtfs: "/api/gtfs",
+        realtime: "/api/gtfs-rt",
+        feed: "/api/feed",
+        tokens: "/api",
+      },
+    });
+  });
+
+  // Root path redirect to API docs (only if not serving static files)
   app.get("/", (req, res) => {
-    res.redirect("/api-docs");
+    // Check if this is an API request (not a static file request)
+    if (req.accepts("html")) {
+      res.redirect("/api-docs");
+    } else {
+      res.status(200).json({
+        message: "SafeComm Transportation API",
+        version: "1.0.0",
+        documentation: `${req.protocol}://${req.get("host")}/api-docs`,
+        health: `${req.protocol}://${req.get("host")}/api/health`,
+      });
+    }
   });
 };
 
